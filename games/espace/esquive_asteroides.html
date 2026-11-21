@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Esquive d'Astéroïdes</title>
+    <style>
+        body { margin: 0; background: #0a0612; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        canvas { border: 2px solid #b829ea; background: #120924; box-shadow: 0 0 20px #b829ea44; cursor: none; }
+        h1 { margin-bottom: 5px; color: #d56bff; text-transform: uppercase; letter-spacing: 2px; }
+        p { margin-top: 0; color: #aaa; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>Esquive d'Astéroïdes</h1>
+    <p>Déplacez la souris pour piloter la sonde • Cliquez pour rejouer</p>
+    <canvas id="game" width="500" height="500"></canvas>
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        let ship = { x: 250, y: 250, r: 12 }, asteroids = [], startTime = Date.now(), gameOver = false, survival = 0;
+
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            ship.x = e.clientX - rect.left;
+            ship.y = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('click', () => {
+            if (gameOver) { asteroids = []; startTime = Date.now(); gameOver = false; }
+        });
+
+        function spawnAsteroid() {
+            if (Math.random() < 0.08) {
+                const side = Math.floor(Math.random() * 4);
+                let x, y, vx, vy;
+                const speed = 2 + Math.random() * 3 + (survival * 0.05);
+                if (side === 0) { x = Math.random() * 500; y = -20; vx = (Math.random() - 0.5) * 3; vy = speed; }
+                else if (side === 1) { x = 520; y = Math.random() * 500; vx = -speed; vy = (Math.random() - 0.5) * 3; }
+                else if (side === 2) { x = Math.random() * 500; y = 520; vx = (Math.random() - 0.5) * 3; vy = -speed; }
+                else { x = -20; y = Math.random() * 500; vx = speed; vy = (Math.random() - 0.5) * 3; }
+                asteroids.push({ x, y, vx, vy, r: 10 + Math.random() * 18 });
+            }
+        }
+
+        function update() {
+            if (gameOver) return;
+            survival = ((Date.now() - startTime) / 1000).toFixed(1);
+            spawnAsteroid();
+            asteroids.forEach((a, i) => {
+                a.x += a.vx; a.y += a.vy;
+                const dist = Math.hypot(ship.x - a.x, ship.y - a.y);
+                if (dist < ship.r + a.r - 3) gameOver = true;
+                if (a.x < -50 || a.x > 550 || a.y < -50 || a.y > 550) asteroids.splice(i, 1);
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, 500, 500);
+            ctx.fillStyle = '#00ffcc';
+            ctx.beginPath(); ctx.arc(ship.x, ship.y, ship.r, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = '#8c7ae6';
+            asteroids.forEach(a => {
+                ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2); ctx.fill();
+            });
+
+            ctx.fillStyle = '#fff';
+            ctx.font = '18px sans-serif';
+            ctx.fillText('Temps : ' + survival + ' s', 15, 28);
+
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.75)';
+                ctx.fillRect(0, 0, 500, 500);
+                ctx.fillStyle = '#ff4757';
+                ctx.font = 'bold 34px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('IMPACT !', 250, 230);
+                ctx.fillStyle = '#fff';
+                ctx.font = '18px sans-serif';
+                ctx.fillText('Survie : ' + survival + ' secondes', 250, 270);
+                ctx.fillText('Cliquez pour recommencer', 250, 305);
+                ctx.textAlign = 'left';
+            }
+        }
+
+        function loop() { update(); draw(); requestAnimationFrame(loop); }
+        loop();
+    </script>
+</body>
+</html>
