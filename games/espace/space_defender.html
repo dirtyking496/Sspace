@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Space Defender</title>
+    <style>
+        body { margin: 0; background: #050510; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        canvas { border: 2px solid #00f3ff; background: radial-gradient(circle, #0d1128 0%, #020208 100%); box-shadow: 0 0 20px #00f3ff44; }
+        h1 { margin-bottom: 5px; color: #00f3ff; text-transform: uppercase; letter-spacing: 2px; }
+        p { margin-top: 0; color: #aaa; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>Space Defender</h1>
+    <p>Flèches Gauche/Droite pour bouger • Espace pour tirer</p>
+    <canvas id="game" width="480" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        let score = 0, gameOver = false;
+        const player = { x: 220, y: 540, w: 40, h: 30, speed: 6 };
+        const bullets = [], enemies = [], stars = [];
+        const keys = {};
+
+        for (let i = 0; i < 60; i++) stars.push({ x: Math.random() * 480, y: Math.random() * 600, s: Math.random() * 2 + 1 });
+
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (e.code === 'Space' && !gameOver) bullets.push({ x: player.x + 18, y: player.y, w: 4, h: 12 });
+            if (e.code === 'Enter' && gameOver) reset();
+        });
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        function reset() {
+            score = 0; gameOver = false; bullets.length = 0; enemies.length = 0; player.x = 220;
+        }
+
+        function spawnEnemy() {
+            if (Math.random() < 0.03) enemies.push({ x: Math.random() * 440, y: -30, w: 35, h: 25, speed: 2 + Math.random() * 2 });
+        }
+
+        function update() {
+            if (gameOver) return;
+            if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
+            if (keys['ArrowRight'] && player.x < canvas.width - player.w) player.x += player.speed;
+
+            stars.forEach(st => { st.y += st.s * 0.5; if (st.y > 600) st.y = 0; });
+            bullets.forEach((b, i) => { b.y -= 8; if (b.y < 0) bullets.splice(i, 1); });
+            spawnEnemy();
+
+            enemies.forEach((en, ei) => {
+                en.y += en.speed;
+                if (en.y > 600) enemies.splice(ei, 1);
+                if (en.x < player.x + player.w && en.x + en.w > player.x && en.y < player.y + player.h && en.y + en.h > player.y) gameOver = true;
+                bullets.forEach((b, bi) => {
+                    if (b.x < en.x + en.w && b.x + b.w > en.x && b.y < en.y + en.h && b.y + b.h > en.y) {
+                        enemies.splice(ei, 1); bullets.splice(bi, 1); score += 10;
+                    }
+                });
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff';
+            stars.forEach(st => ctx.fillRect(st.x, st.y, st.s, st.s));
+
+            // Player ship
+            ctx.fillStyle = '#00f3ff';
+            ctx.beginPath();
+            ctx.moveTo(player.x + player.w / 2, player.y);
+            ctx.lineTo(player.x + player.w, player.y + player.h);
+            ctx.lineTo(player.x, player.y + player.h);
+            ctx.closePath();
+            ctx.fill();
+
+            // Bullets
+            ctx.fillStyle = '#ffea00';
+            bullets.forEach(b => ctx.fillRect(b.x, b.y, b.w, b.h));
+
+            // Enemies
+            ctx.fillStyle = '#ff2a6d';
+            enemies.forEach(en => ctx.fillRect(en.x, en.y, en.w, en.h));
+
+            ctx.fillStyle = '#fff';
+            ctx.font = '18px sans-serif';
+            ctx.fillText('Score: ' + score, 15, 28);
+
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.75)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ff2a6d';
+                ctx.font = 'bold 36px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', 240, 280);
+                ctx.fillStyle = '#fff';
+                ctx.font = '18px sans-serif';
+                ctx.fillText('Appuyez sur Entrée pour rejouer', 240, 320);
+                ctx.textAlign = 'left';
+            }
+        }
+
+        function loop() { update(); draw(); requestAnimationFrame(loop); }
+        loop();
+    </script>
+</body>
+</html>
