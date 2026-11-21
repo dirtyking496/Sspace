@@ -1,4 +1,4 @@
-const CACHE='sspace-static-v30';
+const CACHE='sspace-static-v31';
 const CORE_ASSETS=['./','./index.html','./bowling3d.js','./sspace-promo.html','./manifest.webmanifest','./icons/favicon.ico','./icons/favicon-32.png','./icons/icon-192.png','./icons/icon-512.png','./icons/icon-maskable-192.png','./icons/icon-maskable-512.png','./icons/apple-touch-icon.png','./games/espace/index.html','./games/espace/space_defender.html','./games/espace/esquive_asteroides.html','./games/espace/alunissage.html','./assets/gallery/sspace-neon-blue.webp','./assets/gallery/sspace-pink-hearts.webp','./assets/gallery/sspace-cosmic-wings.webp','./assets/gallery/sspace-rainbow-equalizer.webp','./assets/gallery/sspace-nebula-heart.webp','./assets/gallery/sspace-tropical-sunset.webp'];
 
 self.addEventListener('install',event=>{
@@ -24,7 +24,7 @@ self.addEventListener('fetch',event=>{
       fetch(request).then(response=>{
         if(response&&response.ok){
           const copy=response.clone();
-          event.waitUntil(caches.open(CACHE).then(cache=>cache.put('./index.html','./bowling3d.js',copy)));
+          event.waitUntil(caches.open(CACHE).then(cache=>cache.put('./index.html',copy)));
         }
         return response;
       }).catch(()=>caches.match('./index.html'))
