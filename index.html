@@ -2107,7 +2107,10 @@ $('authForm').onsubmit=async e=>{e.preventDefault();if(authBusy)return;const ema
  // Filet de sécurité
  setTimeout(()=>{setAuthBusy(false)},8000);
 };
-db.auth.onAuthStateChange(async(ev,session)=>{
+// IMPORTANT: ne jamais attendre une requête Supabase dans onAuthStateChange.
+ // Le client garde un verrou d'authentification pendant ce callback; lancer
+ // enterApp ici directement peut bloquer loadProfile() et laisser la page figée.
+db.auth.onAuthStateChange((ev,session)=>{
   if(ev==='SIGNED_OUT'){
     setAuthBusy(false);
     currentUser=null;currentProfile=null;
@@ -2118,14 +2121,16 @@ db.auth.onAuthStateChange(async(ev,session)=>{
     return;
   }
   if((ev==='SIGNED_IN'||ev==='TOKEN_REFRESHED'||ev==='USER_UPDATED')&&session?.user){
-    try{
-      await enterApp(session.user);
-      setAuthBusy(false);
-    }catch(err){
-      console.warn('enterApp',err);
-      setAuthBusy(false);
-      notice('Connexion établie, mais le chargement du profil a échoué. Réessaie.');
-    }
+    const user=session.user;
+    setTimeout(()=>{
+      enterApp(user).then(()=>{
+        setAuthBusy(false);
+      }).catch(err=>{
+        console.warn('enterApp',err);
+        setAuthBusy(false);
+        notice('Connexion établie, mais le chargement du profil a échoué. Réessaie.');
+      });
+    },0);
   }
 });
 async function googleProviderEnabled(){ // true / false, ou null si on ne peut pas le savoir (réseau)
