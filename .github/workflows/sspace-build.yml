@@ -1,0 +1,30 @@
+name: SSPACE build verification
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract archived project
+        run: |
+          mkdir -p project
+          unzip -q SSPACE_V34_NEON_MESSENGER_CHAT_REPARE.zip -d project
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('project/**/package-lock.json', 'project/**/package.json') }}
+          restore-keys: npm-${{ runner.os }}-
+      - name: Install
+        working-directory: project
+        run: npm install --no-audit --no-fund --fetch-retries=2 --fetch-timeout=120000
+      - name: Build
+        working-directory: project
+        run: npm run build
