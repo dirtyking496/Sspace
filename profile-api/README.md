@@ -23,11 +23,11 @@ Never put a database password or service_role key in VITE_* variables, source co
 
 ## Migration and database role
 
-Review and apply migrations/20261123002000_profile_media_api.sql to the existing Sspace Supabase project before exposing this API. It adds profiles.is_private (default false), creates public.profile_media, enables RLS, and provisions a dedicated NOLOGIN role named sspace_profile_api with only the required column/table grants and media-table policies. It does not replace existing profiles or authentication.
+Review and apply migrations/20261123002000_profile_media_api.sql to the existing Sspace Supabase project before exposing this API. It adds profiles.is_private (default false), creates public.profile_media, enables RLS, restricts direct profile reads to public profiles or the signed-in owner, and provisions a dedicated NOLOGIN role named sspace_profile_api with only the required column/table grants and server-only policies. It does not replace existing profiles or authentication.
 
 After the migration, assign a unique strong password to sspace_profile_api using a secure SQL session, enable LOGIN for that role, and store its connection string only in Railway's encrypted DATABASE_URL variable. Never use the postgres admin password or a service_role key for the running API. Do not grant direct media-table access to anon or authenticated.
 
-The current profiles table already has a public SELECT policy; the API enforces is_private before returning profiles or media. Keep the role credential private because it can read public profile fields and manage media metadata.
+The server-only role can read the profile fields needed by the API; Express handlers must continue enforcing visibility and ownership using the Supabase user ID verified on every request. Keep the role credential private.
 
 ## Endpoints
 
