@@ -22,5 +22,35 @@ CREATE INDEX IF NOT EXISTS profile_media_owner_created_idx
 ALTER TABLE public.profile_media ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.profile_media FROM PUBLIC, anon, authenticated;
 
+-- A dedicated NOLOGIN role is created by the migration. A separate secret is
+-- assigned to it at deployment time and stored only in Railway's variables.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'sspace_profile_api') THEN
+    EXECUTE 'CREATE ROLE sspace_profile_api NOLOGIN';
+  END IF;
+END
+$$;
+
+GRANT USAGE ON SCHEMA public TO sspace_profile_api;
+GRANT SELECT (id, username, display_name, avatar_url, cover_url, status_text, is_private)
+  ON public.profiles TO sspace_profile_api;
+GRANT SELECT, INSERT, DELETE ON public.profile_media TO sspace_profile_api;
+
+DROP POLICY IF EXISTS "SSPACE API reads profile media" ON public.profile_media;
+CREATE POLICY "SSPACE API reads profile media"
+  ON public.profile_media FOR SELECT TO sspace_profile_api
+  USING (true);
+
+DROP POLICY IF EXISTS "SSPACE API inserts profile media" ON public.profile_media;
+CREATE POLICY "SSPACE API inserts profile media"
+  ON public.profile_media FOR INSERT TO sspace_profile_api
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "SSPACE API deletes profile media" ON public.profile_media;
+CREATE POLICY "SSPACE API deletes profile media"
+  ON public.profile_media FOR DELETE TO sspace_profile_api
+  USING (true);
+
 COMMENT ON TABLE public.profile_media IS
   'Profile media metadata managed by the authenticated SSPACE Express API; no parallel user accounts are created.';
