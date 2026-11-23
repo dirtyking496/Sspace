@@ -1,4 +1,4 @@
-name: SSPACE build verification
+name: SSPACE V35.2 build verification
 on:
   push:
     branches: [main]
@@ -9,11 +9,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract repository archive
+      - name: Extract V35.2 source archive
         run: |
+          ARCHIVE="SSPACE_V35.2_NEON_ORBIT.zip"
+          if [ ! -f "$ARCHIVE" ]; then
+            echo "::error::Missing $ARCHIVE in repository root. Upload the V35.2 archive first."
+            exit 1
+          fi
           mkdir -p project
-          unzip -q SSPACE_V34_NEON_MESSENGER_CHAT_REPARE.zip -d project
+          unzip -q "$ARCHIVE" -d project
           ROOT=$(find project -name package.json -not -path '*/messenger/*' -not -path '*/backend/*' -print -quit | xargs dirname)
+          if [ -z "$ROOT" ] || [ ! -f "$ROOT/package.json" ]; then
+            echo "::error::Could not locate the V35.2 root package.json"
+            exit 1
+          fi
           echo "PROJECT_ROOT=$ROOT" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
