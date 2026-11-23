@@ -1,13 +1,13 @@
 module.exports = async function requireSupabaseUser(req, res, next) {
   const header = req.get('authorization') || '';
-  const match = header.match(/^Bearer\\s+(.+)$/i);
+  const match = header.match(/^Bearer\s+(.+)$/i);
   const token = match && match[1] ? match[1].trim() : '';
 
   if (!token) {
     return res.status(401).json({ error: 'Session SSPACE requise.' });
   }
 
-  const supabaseUrl = (process.env.SUPABASE_URL || '').replace(/\\/$/, '');
+  const supabaseUrl = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
   const anonKey = process.env.SUPABASE_ANON_KEY;
   if (!supabaseUrl || !anonKey) {
     return res.status(503).json({ error: 'Vérification Supabase non configurée.' });
