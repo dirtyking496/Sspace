@@ -5,7 +5,6 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { pool } = require('./db.cjs');
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -52,18 +51,10 @@ const server = app.listen(port, () => {
 });
 
 let shuttingDown = false;
-async function shutdown() {
+function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
-  server.close(async () => {
-    try {
-      await pool.end();
-      process.exit(0);
-    } catch (error) {
-      console.error('Erreur fermeture PostgreSQL:', error.message);
-      process.exit(1);
-    }
-  });
+  server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 10_000).unref();
 }
 process.on('SIGTERM', shutdown);
