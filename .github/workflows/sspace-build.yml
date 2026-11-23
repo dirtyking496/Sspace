@@ -9,10 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract archived project
+      - name: Extract repository archive
         run: |
           mkdir -p project
           unzip -q SSPACE_V34_NEON_MESSENGER_CHAT_REPARE.zip -d project
+          ROOT=$(find project -name package.json -not -path '*/messenger/*' -not -path '*/backend/*' -print -quit | xargs dirname)
+          echo "PROJECT_ROOT=$ROOT" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -23,8 +25,8 @@ jobs:
           key: npm-${{ runner.os }}-${{ hashFiles('project/**/package-lock.json', 'project/**/package.json') }}
           restore-keys: npm-${{ runner.os }}-
       - name: Install
-        working-directory: project
         run: npm install --no-audit --no-fund --fetch-retries=2 --fetch-timeout=120000
+        working-directory: ${{ env.PROJECT_ROOT }}
       - name: Build
-        working-directory: project
         run: npm run build
+        working-directory: ${{ env.PROJECT_ROOT }}
