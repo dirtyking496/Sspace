@@ -19,6 +19,13 @@ CREATE TABLE IF NOT EXISTS public.profile_media (
 CREATE INDEX IF NOT EXISTS profile_media_owner_created_idx
   ON public.profile_media(owner_id, created_at DESC);
 
+-- Enforce profile privacy in direct Supabase reads as well as the Express API.
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Profiles are public" ON public.profiles;
+CREATE POLICY "Profiles are public"
+  ON public.profiles FOR SELECT TO public
+  USING (NOT is_private OR id = auth.uid());
+
 ALTER TABLE public.profile_media ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.profile_media FROM PUBLIC, anon, authenticated;
 
@@ -36,6 +43,13 @@ GRANT USAGE ON SCHEMA public TO sspace_profile_api;
 GRANT SELECT (id, username, display_name, avatar_url, cover_url, status_text, is_private)
   ON public.profiles TO sspace_profile_api;
 GRANT SELECT, INSERT, DELETE ON public.profile_media TO sspace_profile_api;
+
+-- The server-only role can read profiles and media metadata; the Express
+-- handlers enforce ownership/privacy using the verified Supabase user ID.
+DROP POLICY IF EXISTS "SSPACE API reads profiles" ON public.profiles;
+CREATE POLICY "SSPACE API reads profiles"
+  ON public.profiles FOR SELECT TO sspace_profile_api
+  USING (true);
 
 DROP POLICY IF EXISTS "SSPACE API reads profile media" ON public.profile_media;
 CREATE POLICY "SSPACE API reads profile media"
