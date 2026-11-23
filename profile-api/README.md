@@ -1,33 +1,28 @@
 # SSPACE Profile API
 
-Standalone Node.js/Express service for profile and profile-media endpoints. It reuses the existing Supabase Auth session and the existing public.profiles user IDs. It does not create accounts or change the website's production deployment.
+Standalone Node.js/Express service for profile and profile-media endpoints. It reuses each visitor's existing Supabase Auth session and the existing public.profiles user IDs. It does not create accounts, require a PostgreSQL password, or change the website's production deployment.
 
 ## Runtime
 
 - Node.js 22 or newer
-- PostgreSQL connection to the existing SSPACE Supabase project
+- Existing SSPACE Supabase project through its Data API
 - Persistent volume mounted at /data
 - HTTPS public service URL
 
 ## Required environment variables
 
-- DATABASE_URL: dedicated PostgreSQL connection string for the API role
 - SUPABASE_URL: existing SSPACE Supabase project URL
-- SUPABASE_ANON_KEY: existing publishable/anon key; this is public by design
+- SUPABASE_ANON_KEY: existing publishable key (public client key)
 - FRONTEND_ORIGINS: comma-separated allowed website origins
 - UPLOAD_DIR: persistent volume path, set to /data on Railway
 
-Optional: PG_POOL_MAX, MAX_PHOTO_MB, MAX_VIDEO_MB.
+Optional: MAX_PHOTO_MB and MAX_VIDEO_MB.
 
-Never put a database password or service_role key in VITE_* variables, source control, or browser code.
+No DATABASE_URL, database password, service_role key, or Supabase secret key is used by this API. Each API request verifies the existing bearer token and forwards that same user-scoped token to Supabase PostgREST. Row Level Security decides which profiles and media rows that user may access.
 
-## Migration and database role
+## Database
 
-Review and apply migrations/20261123002000_profile_media_api.sql to the existing Sspace Supabase project before exposing this API. It adds profiles.is_private (default false), creates public.profile_media, enables RLS, restricts direct profile reads to public profiles or the signed-in owner, and provisions a dedicated NOLOGIN role named sspace_profile_api with only the required column/table grants and server-only policies. It does not replace existing profiles or authentication.
-
-After the migration, assign a unique strong password to sspace_profile_api using a secure SQL session, enable LOGIN for that role, and store its connection string only in Railway's encrypted DATABASE_URL variable. Never use the postgres admin password or a service_role key for the running API. Do not grant direct media-table access to anon or authenticated.
-
-The server-only role can read the profile fields needed by the API; Express handlers must continue enforcing visibility and ownership using the Supabase user ID verified on every request. Keep the role credential private.
+The migration `sspace_profile_media_api_v45` has been applied to the existing Sspace project. It adds `profiles.is_private`, creates `public.profile_media`, enables RLS, and restricts private profile reads to the owner. A second migration grants authenticated users access only to their own media and media belonging to publicly visible profiles. It does not replace existing profiles or authentication.
 
 ## Endpoints
 
@@ -44,4 +39,4 @@ Every /api/profil route requires Authorization: Bearer <existing Supabase access
 
 ## Railway
 
-Set the service root directory to /profile-api, start command to npm start, healthcheck path to /health, and attach a persistent volume mounted at /data. Do not deploy this service on the Vercel static frontend.
+Set the service root directory to /profile-api, start command to npm start, healthcheck path to /health, and attach a persistent volume mounted at /data. The volume stores uploaded media only; metadata remains in Supabase. Do not deploy this service on the Vercel static frontend.
